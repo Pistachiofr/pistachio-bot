@@ -24,7 +24,7 @@ boutique = {
    "rôle personnalisé": 2500,
    "rôle 🌑 Moon's chosen": 3000,
    "ajout en ami de Delta Tag" : 5000,
-   "rôle 🌔Moonkeeper" : 10000
+   "rôle 🌔Moonkeeper" : 10000,
    "devenir admin" : 100000
 }
 blagues = [
