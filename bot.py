@@ -4,7 +4,8 @@ import random
 import json
 import os
 import time
-from discord.ui import View, Button
+import asyncio
+from discord.ui import View
 # =========================
 # CONFIG
 # =========================
@@ -13,23 +14,27 @@ OWNER_ID = 1282006578777686066
 # =========================
 # DONNEES
 # =========================
+bot = commands.Bot(...)
 xp = {}
 argent = {}
 inventaires = {}
 last_daily = {}
 boutique = {
-   "cookie": 100,
-   "épée": 500,
-   "couronne": 1000
+   "ajout en ami de Pistachio": 1500,
+   "rôle personnalisé": 2500,
+   "rôle 🌑 Moon's chosen": 3000,
+   "ajout en ami de Delta Tag" : 5000,
+   "rôle 🌔Moonkeeper" : 10000
+   "devenir admin" : 100000
 }
 blagues = [
-     "Quelle est la différence entre un rappeur et un campeur ? Le rappeur n*que ta mère et le campeur monte ta tente",
-       "Je me demande si les touristes chinois savent que les souvenirs qu'ils achètent viennent de chez eux",
-       "Tu préfères avoir des bites à la place des dents ou chier de la mayonnaise ?",
-       "Tu préfères vomir des limaces ou chier des cafards qui te grattouillent l’anus ?",
-       "Tu préfères avoir des doigts en forme de saucisses ou des oreilles en forme de crêpes ?",
-       "Tu préfères manger une pizza au dentifrice ou une glace au goût de sardine ?",
-       "Tu préfères de très mauvais préliminaires avec Jude Law ou de très bons préliminaires avec un frère Bogdanoff ?"
+     "Quelle est la différence entre un rappeur et un campeur ? Le rappeur te nique ta mère et le campeur te monte ta tente",
+      "Je me demande si les touristes chinois savent que les souvenirs qu'ils achètent viennent de chez eux",
+      "Tu préfères avoir des bites à la place des dents ou chier de la mayonnaise ?",
+      "Tu préfères vomir des limaces ou chier des cafards qui te grattouillent l’anus ?",
+      "Tu préfères avoir des doigts en forme de saucisses ou des oreilles en forme de crêpes ?",
+      "Tu préfères manger une pizza au dentifrice ou une glace au goût de sardine ?",
+      "Tu préfères de très mauvais préliminaires avec Jude Law ou de très bons préliminaires avec un frère Bogdanoff ?"
 ]
 # =========================
 # JSON
@@ -78,73 +83,17 @@ bot = commands.Bot(
    command_prefix="!",
    intents=intents
 )
-class TicketView(View):
-   def init(self):
-       super().init(timeout=None)
-   @discord.ui.button(
-       label="🎫 Créer un ticket",
-       style=discord.ButtonStyle.green,
-       custom_id="create_ticket"
-   )
-   async def create_ticket(
-       self,
-       interaction: discord.Interaction,
-       button: discord.ui.Button
-   ):
-       nom_salon = f"ticket-{interaction.user.name}"
-       for salon in interaction.guild.text_channels:
-           if salon.name == nom_salon:
-               await interaction.response.send_message(
-                   "❌ Tu as déjà un ticket ouvert.",
-                   ephemeral=True
-               )
-               return
-       categorie = discord.utils.get(
-           interaction.guild.categories,
-           name="🎫・TICKETS"
-       )
-       if categorie is None:
-           categorie = await interaction.guild.create_category(
-               "🎫・TICKETS"
-           )
-       overwrites = {
-           interaction.guild.default_role:
-           discord.PermissionOverwrite(
-               view_channel=False
-           ),
-           interaction.user:
-           discord.PermissionOverwrite(
-               view_channel=True,
-               send_messages=True
-           ),
-           interaction.guild.me:
-           discord.PermissionOverwrite(
-               view_channel=True,
-               send_messages=True
-           )
-       }
-       salon = await interaction.guild.create_text_channel(
-           nom_salon,
-           category=categorie,
-           overwrites=overwrites
-       )
-       await salon.send(
-           f"🎫 Bonjour {interaction.user.mention}\n\nDécris ton problème ici."
-       )
-       await interaction.response.send_message(
-           f"✅ Ticket créé : {salon.mention}",
-           ephemeral=True
-       )
 # =========================
 # READY
 # =========================
 @bot.event
 async def on_ready():
    charger()
+   bot.add_view(TicketView())
    print(f"Connecté en tant que {bot.user}")
    await bot.change_presence(
        activity=discord.Game(
-           name="Je protège le serveur 🍀"
+           name="Tape !aide pour tout problème rencontré 🍀"
        )
    )
 # =========================
@@ -153,7 +102,7 @@ async def on_ready():
 @bot.event
 async def on_member_join(member):
    await member.guild.system_channel.send(
-       f"Yo {member.mention} bienvenue"
+       f"Salut {member.mention} bienvenue. Pour toute question ou problème, n'hésite pas à ouvrir un ticket"
    )
 # =========================
 # MESSAGES
@@ -173,10 +122,10 @@ async def on_message(message):
        elif "merci" in texte:
            await message.channel.send(" Avec plaisir !")
        elif "ça va" in texte or "cv" in texte:
-           await message.channel.send(" Oui ça va très bien !")
+           await message.channel.send(" trql ett ?")
        else:
            await message.channel.send(
-               "🤖 Je suis encore en développement."
+               "Je ne parle pas aux imbéciles"
            )
    await bot.process_commands(message)
 # =========================
@@ -364,6 +313,103 @@ async def inventaire(ctx):
        "🎒 " + ", ".join(inventaires[user_id])
    )
 # =========================
+# TICKET
+# =========================
+class TicketView(View):
+   def init(self):
+       super().init(timeout=None)
+   @discord.ui.button(
+       label="🎫 Créer un ticket",
+       style=discord.ButtonStyle.green,
+       custom_id="create_ticket_button"
+   )
+   async def create_ticket(
+       self,
+       interaction: discord.Interaction,
+       button: discord.ui.Button
+   ):
+       nom_salon = f"ticket-{interaction.user.id}"
+       for salon in interaction.guild.text_channels:
+           if salon.name == nom_salon:
+               await interaction.response.send_message(
+                   "❌ Tu possèdes déjà un ticket ouvert.",
+                   ephemeral=True
+               )
+               return
+       categorie = discord.utils.get(
+           interaction.guild.categories,
+           name="Tickets"
+       )
+       if categorie is None:
+           categorie = await interaction.guild.create_category(
+               "Tickets"
+           )
+       overwrites = {
+           interaction.guild.default_role:
+           discord.PermissionOverwrite(
+               view_channel=False
+           ),
+           interaction.user:
+           discord.PermissionOverwrite(
+               view_channel=True,
+               send_messages=True,
+               read_message_history=True
+           ),
+           interaction.guild.me:
+           discord.PermissionOverwrite(
+               view_channel=True,
+               send_messages=True,
+               manage_channels=True
+           )
+       }
+       salon = await interaction.guild.create_text_channel(
+           nom_salon,
+           category=categorie,
+           overwrites=overwrites
+       )
+       await salon.send(
+           f"""
+🎫 Bonjour {interaction.user.mention}
+Merci d'avoir contacté le support.
+Décris ton problème ici.
+🔒 Pour fermer le ticket :
+!fermer
+"""
+       )
+       await interaction.response.send_message(
+           f"✅ Ticket créé : {salon.mention}",
+           ephemeral=True
+       )
+# =======================
+@bot.command()
+async def panelticket(ctx):
+   if ctx.author.id != OWNER_ID:
+       return
+   embed = discord.Embed(
+       title="🎫 Support",
+       description="""
+Besoin d'aide ?
+Clique sur le bouton ci-dessous pour ouvrir un ticket.
+""",
+       color=discord.Color.green()
+   )
+   await ctx.send(
+       embed=embed,
+       view=TicketView()
+   )
+# ========================
+@bot.command()
+async def fermer(ctx):
+   if not ctx.channel.name.startswith("ticket-"):
+       await ctx.send(
+           "❌ Cette commande doit être utilisée dans un ticket."
+       )
+       return
+   await ctx.send(
+       "🔒 Fermeture du ticket..."
+   )
+   await ctx.channel.delete()
+# =========================
 # MP
 # =========================
 @bot.command()
@@ -393,34 +439,6 @@ async def kick(ctx, membre: discord.Member):
            "❌ Impossible."
        )
 # =========================
-# TICKETS
-# =========================
-@bot.command()
-async def panelticket(ctx):
-   if ctx.author.id != OWNER_ID:
-       return
-   embed = discord.Embed(
-       title="🎫 Support",
-       description="Clique sur le bouton ci-dessous pour ouvrir un ticket.",
-       color=discord.Color.green()
-   )
-   await ctx.send(
-       embed=embed,
-       view=TicketView()
-   )
-
-@bot.command()
-async def fermer(ctx):
-   if not ctx.channel.name.startswith("ticket-"):
-       await ctx.send(
-           "❌ Cette commande doit être utilisée dans un ticket."
-       )
-       return
-   await ctx.send(
-       "🔒 Fermeture du ticket..."
-   )
-   await ctx.channel.delete()
-# =========================
 # SECRET
 # =========================
 @bot.command()
@@ -430,6 +448,61 @@ async def secret(ctx):
    await ctx.send(
        " Bonjour patron"
    )
+# =========================
+# GIVEAWAY
+# =========================
+@bot.command()
+async def giveaway(ctx, duree, *, lot):
+   if ctx.author.id != OWNER_ID:
+       return
+   multiplicateurs = {
+       "s": 1,
+       "m": 60,
+       "h": 3600,
+       "j": 86400
+   }
+   try:
+       unite = duree[-1]
+       valeur = int(duree[:-1])
+       secondes = valeur * multiplicateurs[unite]
+   except:
+       await ctx.send(
+           "❌ Format invalide.\nExemple : !giveaway 1h Nitro"
+       )
+       return
+   embed = discord.Embed(
+       title="🎉 GIVEAWAY 🎉",
+       description=f"""
+🎁 Lot : {lot}
+⏳ Durée : {duree}
+Clique sur 🎉 pour participer !
+""",
+       color=discord.Color.gold()
+   )
+   message = await ctx.send(embed=embed)
+   await message.add_reaction("🎉")
+   await asyncio.sleep(secondes)
+   message = await ctx.channel.fetch_message(
+message.id
+   )
+   participants = []
+   for reaction in message.reactions:
+       if str(reaction.emoji) == "🎉":
+           async for user in reaction.users():
+               if not user.bot:
+                   participants.append(user)
+   if len(participants) == 0:
+       await ctx.send(
+           "❌ Aucun participant."
+       )
+       return
+   gagnant = random.choice(
+       participants
+   )
+   await ctx.send(
+       f"🏆 Félicitations {gagnant.mention} !\nTu remportes {lot} !"
+   )
+
 # =========================
 # AIDE
 # =========================
@@ -454,21 +527,12 @@ async def aide(ctx):
 !daily → Récompense quotidienne
 !argentt → Voir ton argent
 !casino montant → Jouer au casino
-🧾 Ticket
-!ticket → Ouvrir un ticket
-!fermer → Fermer un ticket (utilisable seulement dans celui-ci)
 🛒 Boutique
 !shop → Voir la boutique
 !acheter objet → Acheter un objet
 !inventaire → Voir ton inventaire
 📨 Messages Privés
 !mp @username message
-🔨 Modération
-!kick @joueur
-👑 Commandes Propriétaire
-!secret
-!giveargent @username montant
-🍀 Pistachio v1
 """)
 # =========================
 # FIN
