@@ -14,7 +14,14 @@ OWNER_ID = 1282006578777686066
 # =========================
 # DONNEES
 # =========================
-bot = commands.Bot(...)
+intents = discord.Intents.default()
+intents.message_content = True
+intents.members = True
+bot = commands.Bot(
+   command_prefix = "!",
+   intents = intents
+)
+
 xp = {}
 argent = {}
 inventaires = {}
